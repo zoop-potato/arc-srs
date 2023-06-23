@@ -1,29 +1,35 @@
 #![allow(unused)]
 
 use core::fmt;
-use std::{sync::Arc, ops::Deref};
+use std::{ops::Deref, sync::Arc};
+
+const EXPAND: char = 'e';
+const OUTREACH: char = 'o';
 
 fn main() {
-    let oe = SRS::new_text(&"oe");
-    let second_step = oe.wrap();
-    let third_step = SRS::new_list(&[second_step.clone(), oe.clone()]);
-    let forth_step = third_step.wrap(); // this is the first iteration of the rule
-    let fifth_step = SRS::new_list(&[third_step.clone(), oe.clone()]).wrap();
-    let it = SRS::new_list(&[fifth_step.clone(), forth_step.clone(), third_step.clone()]).wrap();
-    //println!("{oe:?}");
-    let mut iter = forth_step.clone().into_iter();
-    loop {
-        let c = iter.next();
-        if c.is_none() {
-            break;
-        }
-        let c = c.unwrap();
-        if c.eq(&'e') {
-            let wrap = iter.wrap_of_stack_index(iter.get_top_stack_index().unwrap()).unwrap().0;
-            println!("{}", wrap);
-        }
-    }
-    //println!("\n{:?}", it);
+    let oe = SRS::new_text(&"oe").wrap().wrap();
+    println!("{}", oe);
+    println!("---------------------------------------------");
+    let expand_1 = oe.expand();
+    println!("{}", expand_1);
+    println!("---------------------------------------------");
+    let expand_2 = expand_1.expand();
+    println!("{}", expand_2);
+    println!("---------------------------------------------");
+    let expand_3 = expand_2.expand();
+    println!("{}", expand_3);
+    println!("---------------------------------------------");
+    let expand_4 = expand_3.expand();
+    println!("{}", expand_4);
+    println!("---------------------------------------------");
+    let expand_5 = expand_4.expand();
+    println!("{}", expand_5);
+    println!("---------------------------------------------");
+    println!("Expand 5 is {} long.", expand_5.to_string().len());
+    //let big = expand_5.expand();
+    //println!("Done! {}", big.to_string().len());
+    //let big2 = big.expand();
+    //println!("Done!");
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -63,7 +69,7 @@ impl SRS {
                         if !before.deref().eq("(") {
                             return false;
                         }
-                    },
+                    }
                 }
                 match &inner[2] {
                     SRS::List(_) => return false,
@@ -71,10 +77,80 @@ impl SRS {
                         if !after.deref().eq(")") {
                             return false;
                         }
-                    },
+                    }
                 }
                 return true;
-            },
+            }
+        }
+    }
+
+    fn expand(&self) -> SRS {
+        let mut iter = self.clone().into_iter();
+        let mut wrap_stack: Vec<Vec<SRS>> = vec![vec![]];
+        let mut temp_string = "".to_string();
+        loop {
+            let c = iter.next();
+            if c.is_none() {
+                let bottom_layer = wrap_stack.pop().unwrap();
+                return SRS::new_list(&bottom_layer);
+            }
+            let c = c.unwrap();
+
+            
+            match c {
+                '(' => {
+                    if temp_string.len() != 0 {
+                        let push = SRS::new_text(&temp_string);
+                        wrap_stack.last_mut().unwrap().push(push);
+                        temp_string.clear();
+                    }
+                    wrap_stack.push(vec![]);
+                }
+                ')' => {
+                    if temp_string.len() != 0 {
+                        let push = SRS::new_text(&temp_string);
+                        wrap_stack.last_mut().unwrap().push(push);
+                        temp_string.clear();
+                    }
+                    let layer = wrap_stack.pop().unwrap();
+                    let consolidated = SRS::new_list(&layer[..]);
+                    wrap_stack.last_mut().unwrap().push(consolidated.wrap());
+                }
+                EXPAND => {
+                    if temp_string.len() != 0 {
+                        let push = SRS::new_text(&temp_string);
+                        wrap_stack.last_mut().unwrap().push(push);
+                        temp_string.clear();
+                    }
+                    let top_index = iter.get_top_stack_index().unwrap();
+                    let wrap = iter.wrap_of_stack_index(top_index).unwrap().0;
+                    // Get the middle element of the wrap
+                    let expansion = match &wrap {
+                        SRS::List(list) => &list.deref()[1],
+                        SRS::Text(_) => panic!("Wrap should not be the SRS::Text"),
+                    }
+                    .clone();
+                    wrap_stack.last_mut().unwrap().push(expansion);
+                }
+                OUTREACH => {
+                    if temp_string.len() != 0 {
+                        let push = SRS::new_text(&temp_string);
+                        wrap_stack.last_mut().unwrap().push(push);
+                        temp_string.clear();
+                    }
+                    let top_index = iter.get_top_stack_index().unwrap();
+                    let wrap = iter.wrap_of_stack_index(top_index).unwrap().1;
+                    let wrap_of_wrap = iter.wrap_of_stack_index(wrap).unwrap().0;
+                    // Get the middle element of the wrap
+                    let expansion = match &wrap_of_wrap {
+                        SRS::List(list) => &list.deref()[1],
+                        SRS::Text(_) => panic!("Wrap should not be the SRS::Text"),
+                    }
+                    .clone();
+                    wrap_stack.last_mut().unwrap().push(expansion);
+                }
+                _ => temp_string.push(c),
+            }
         }
     }
 }
@@ -136,7 +212,7 @@ impl SrsIter {
     fn increment_at_top(&mut self) {
         let last_indx = self.stack.len();
         if last_indx > 0 {
-            let last_index = last_indx -1;
+            let last_index = last_indx - 1;
             let mut incr = self.stack.get_mut(last_index).unwrap();
             incr.1 += 1;
         }
@@ -155,7 +231,7 @@ impl SrsIter {
     }
 
     /// The returned usize is the index on the stack of the returned SRS,
-    /// not the index stored with the SRS 
+    /// not the index stored with the SRS
     pub fn wrap_of_stack_index(&self, mut stack_index: usize) -> Option<(SRS, usize)> {
         if stack_index >= self.stack.len() {
             return None;
