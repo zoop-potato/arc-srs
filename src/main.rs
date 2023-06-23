@@ -4,10 +4,28 @@ use std::sync::Arc;
 
 fn main() {
     let oe = SRS::new_text(&"oe").wrap().wrap();
+    let oe = SRS::new_text(&"oe");
+    let second_step = oe.wrap();
+    let third_step = SRS::new_list(&[second_step.clone(), oe.clone()]);
+    let forth_step = third_step.wrap(); // this is the first iteration of the rule
+    let fifth_step = SRS::new_list(&[third_step.clone(), oe.clone()]).wrap();
+    let it = SRS::new_list(&[fifth_step.clone(), forth_step.clone(), third_step.clone()]).wrap();
     //println!("{oe:?}");
     for c in oe {
         print!("{}", c);
+    let mut iter = forth_step.clone().into_iter();
+    loop {
+        let c = iter.next();
+        if c.is_none() {
+            break;
+        }
+        let c = c.unwrap();
+        if c.eq(&'e') {
+            let wrap = iter.wrap_of_stack_index(iter.get_top_stack_index().unwrap()).unwrap().0;
+            println!("{}", wrap);
+        }
     }
+    //println!("\n{:?}", it);
 }
 
 #[derive(Clone, Debug)]
