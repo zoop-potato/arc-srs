@@ -30,6 +30,8 @@ fn main() {
 
 #[derive(Clone, Debug)]
 enum SRS {
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum SRS {
     Text(Arc<str>),
     List(Arc<[SRS]>),
 }
@@ -64,6 +66,12 @@ impl IntoIterator for SRS {
     }
 }
 
+impl fmt::Display for SRS {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let string: String = self.clone().into_iter().collect();
+        write!(f, "{}", string)
+    }
+}
 #[derive(Debug)]
 struct SrsIter {
     stack: Vec<(SRS, usize)>,
