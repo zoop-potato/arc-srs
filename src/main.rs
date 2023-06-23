@@ -74,6 +74,7 @@ impl fmt::Display for SRS {
 }
 #[derive(Debug)]
 struct SrsIter {
+pub struct SrsIter {
     stack: Vec<(SRS, usize)>,
 }
 
@@ -126,6 +127,32 @@ impl SrsIter {
         match srs {
             SRS::Text(string) => return string.len() > *indx,
             SRS::List(list) => return list.len() > *indx,
+        }
+    }
+
+    /// The returned usize is the index on the stack of the returned SRS,
+    /// not the index stored with the SRS 
+    pub fn wrap_of_stack_index(&self, mut stack_index: usize) -> Option<(SRS, usize)> {
+        if stack_index >= self.stack.len() {
+            return None;
+        }
+        loop {
+            if stack_index < 1 {
+                return None;
+            }
+            stack_index -= 1;
+            let srs = &self.stack[stack_index].0;
+            if srs.is_wrap() {
+                return Some((srs.clone(), stack_index));
+            }
+        }
+    }
+    pub fn get_top_stack_index(&self) -> Option<usize> {
+        let len = self.stack.len();
+        if len > 0 {
+            return Some(len - 1);
+        } else {
+            return None;
         }
     }
 }
