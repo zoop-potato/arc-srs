@@ -1,9 +1,9 @@
 #![allow(unused)]
 
-use std::sync::Arc;
+use core::fmt;
+use std::{sync::Arc, ops::Deref};
 
 fn main() {
-    let oe = SRS::new_text(&"oe").wrap().wrap();
     let oe = SRS::new_text(&"oe");
     let second_step = oe.wrap();
     let third_step = SRS::new_list(&[second_step.clone(), oe.clone()]);
@@ -11,8 +11,6 @@ fn main() {
     let fifth_step = SRS::new_list(&[third_step.clone(), oe.clone()]).wrap();
     let it = SRS::new_list(&[fifth_step.clone(), forth_step.clone(), third_step.clone()]).wrap();
     //println!("{oe:?}");
-    for c in oe {
-        print!("{}", c);
     let mut iter = forth_step.clone().into_iter();
     loop {
         let c = iter.next();
@@ -28,8 +26,6 @@ fn main() {
     //println!("\n{:?}", it);
 }
 
-#[derive(Clone, Debug)]
-enum SRS {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SRS {
     Text(Arc<str>),
@@ -53,6 +49,34 @@ impl SRS {
             0: collection.into(),
         }
     }
+
+    fn is_wrap(&self) -> bool {
+        match self {
+            SRS::Text(_) => return false,
+            SRS::List(inner) => {
+                if inner.len() != 3 {
+                    return false;
+                }
+                match &inner[0] {
+                    SRS::List(_) => return false,
+                    SRS::Text(before) => {
+                        if !before.deref().eq("(") {
+                            return false;
+                        }
+                    },
+                }
+                match &inner[2] {
+                    SRS::List(_) => return false,
+                    SRS::Text(after) => {
+                        if !after.deref().eq(")") {
+                            return false;
+                        }
+                    },
+                }
+                return true;
+            },
+        }
+    }
 }
 
 impl IntoIterator for SRS {
@@ -72,8 +96,8 @@ impl fmt::Display for SRS {
         write!(f, "{}", string)
     }
 }
+
 #[derive(Debug)]
-struct SrsIter {
 pub struct SrsIter {
     stack: Vec<(SRS, usize)>,
 }
@@ -147,6 +171,7 @@ impl SrsIter {
             }
         }
     }
+
     pub fn get_top_stack_index(&self) -> Option<usize> {
         let len = self.stack.len();
         if len > 0 {
