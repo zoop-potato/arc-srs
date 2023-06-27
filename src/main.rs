@@ -2,9 +2,14 @@
 
 use core::fmt;
 use std::{ops::Deref, sync::Arc};
+use lazy_static::lazy_static;
 
 const EXPAND: char = 'e';
 const OUTREACH: char = 'o';
+lazy_static!{
+    static ref OPEN: SRS = SRS::Text("(".into());
+    static ref CLOSE: SRS = SRS::Text(")".into());
+}
 
 fn main() {
     let oe = SRS::new_text(&"oe").wrap().wrap();
@@ -24,11 +29,21 @@ fn main() {
     println!("---------------------------------------------");
     let expand_5 = expand_4.expand();
     println!("{}", expand_5);
-    println!("---------------------------------------------");
-    println!("Expand 5 is {} long.", expand_5.to_string().len());
+    //println!("---------------------------------------------");
+    //println!("Expand 5 is {} long.", expand_5.to_string().len());
     //let big = expand_5.expand();
-    //println!("Done! {}", big.to_string().len());
+    //println!("Done building Big!");
+    //println!("Building Extra Big...");
     //let big2 = big.expand();
+    //println!("Done Building Extra Big!");
+    //println!("Counting Extra Big's length...");
+    /*let mut counter: u128 = 0;
+    for _ in big {
+        counter += 1;
+        if counter == u128::MAX {panic!("Max Reached")}
+    }*/
+    //println!("Big is {} long", counter);
+    //
     //println!("Done!");
 }
 
@@ -40,7 +55,7 @@ pub enum SRS {
 
 impl SRS {
     fn wrap(&self) -> Self {
-        let (before, after) = (SRS::new_text(&"("), SRS::new_text(&")"));
+        let (before, after) = (OPEN.clone(), CLOSE.clone());
         let wrapped = SRS::new_list(&[before, self.clone(), after]);
         return wrapped;
     }
@@ -103,7 +118,7 @@ impl SRS {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
-                    }
+                    } // temp_string cleared
                     wrap_stack.push(vec![]);
                 }
                 ')' => {
@@ -111,7 +126,7 @@ impl SRS {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
-                    }
+                    } // temp_string cleared
                     let layer = wrap_stack.pop().unwrap();
                     let consolidated = SRS::new_list(&layer[..]);
                     wrap_stack.last_mut().unwrap().push(consolidated.wrap());
@@ -121,8 +136,8 @@ impl SRS {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
-                    }
-                    let top_index = iter.get_top_stack_index().unwrap();
+                    } // temp_string cleared
+                    let top_index = iter.index_to_top_of_stack().unwrap();
                     let wrap = iter.wrap_of_stack_index(top_index).unwrap().0;
                     // Get the middle element of the wrap
                     let expansion = match &wrap {
@@ -137,8 +152,8 @@ impl SRS {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
-                    }
-                    let top_index = iter.get_top_stack_index().unwrap();
+                    } // temp_string cleared
+                    let top_index = iter.index_to_top_of_stack().unwrap();
                     let wrap = iter.wrap_of_stack_index(top_index).unwrap().1;
                     let wrap_of_wrap = iter.wrap_of_stack_index(wrap).unwrap().0;
                     // Get the middle element of the wrap
@@ -248,7 +263,7 @@ impl SrsIter {
         }
     }
 
-    pub fn get_top_stack_index(&self) -> Option<usize> {
+    pub fn index_to_top_of_stack(&self) -> Option<usize> {
         let len = self.stack.len();
         if len > 0 {
             return Some(len - 1);
