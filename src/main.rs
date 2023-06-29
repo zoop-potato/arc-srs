@@ -12,7 +12,7 @@ lazy_static!{
 }
 
 fn main() {
-    let oe = SRS::new_text(&"oe").wrap().wrap();
+    let oe = SRS::new_text("oe").wrap().wrap();
     println!("{}", oe);
     println!("---------------------------------------------");
     let expand_1 = oe.expand();
@@ -61,14 +61,12 @@ impl SRS {
     }
 
     fn new_text(s: &str) -> Self {
-        SRS::Text { 0: s.into() }
+        SRS::Text(s.into())
     }
 
     fn new_list(list: &[SRS]) -> Self {
-        let collection = list.iter().map(|x| x.clone()).collect::<Vec<SRS>>();
-        SRS::List {
-            0: collection.into(),
-        }
+        let collection = list.to_vec();
+        SRS::List(collection.into())
     }
 
     fn is_wrap(&self) -> bool {
@@ -114,7 +112,7 @@ impl SRS {
             
             match c {
                 '(' => {
-                    if temp_string.len() != 0 {
+                    if !temp_string.is_empty() {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
@@ -122,7 +120,7 @@ impl SRS {
                     wrap_stack.push(vec![]);
                 }
                 ')' => {
-                    if temp_string.len() != 0 {
+                    if !temp_string.is_empty() {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
@@ -132,12 +130,12 @@ impl SRS {
                     wrap_stack.last_mut().unwrap().push(consolidated.wrap());
                 }
                 EXPAND => {
-                    if temp_string.len() != 0 {
+                    if !temp_string.is_empty() {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
                     } // temp_string cleared
-                    let top_index = iter.index_to_top_of_stack().unwrap();
+                    let top_index = iter.index_of_top_of_stack().unwrap();
                     let wrap = iter.wrap_of_stack_index(top_index).unwrap().0;
                     // Get the middle element of the wrap
                     let expansion = match &wrap {
@@ -148,12 +146,12 @@ impl SRS {
                     wrap_stack.last_mut().unwrap().push(expansion);
                 }
                 OUTREACH => {
-                    if temp_string.len() != 0 {
+                    if !temp_string.is_empty() {
                         let push = SRS::new_text(&temp_string);
                         wrap_stack.last_mut().unwrap().push(push);
                         temp_string.clear();
                     } // temp_string cleared
-                    let top_index = iter.index_to_top_of_stack().unwrap();
+                    let top_index = iter.index_of_top_of_stack().unwrap();
                     let wrap = iter.wrap_of_stack_index(top_index).unwrap().1;
                     let wrap_of_wrap = iter.wrap_of_stack_index(wrap).unwrap().0;
                     // Get the middle element of the wrap
@@ -263,7 +261,7 @@ impl SrsIter {
         }
     }
 
-    pub fn index_to_top_of_stack(&self) -> Option<usize> {
+    pub fn index_of_top_of_stack(&self) -> Option<usize> {
         let len = self.stack.len();
         if len > 0 {
             return Some(len - 1);
